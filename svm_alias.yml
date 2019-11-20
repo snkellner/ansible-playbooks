@@ -1,0 +1,66 @@
+---
+- hosts: localhost
+  name: Setup SVM
+  vars:
+    login: &login
+      hostname: "{{ netapp_hostname }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+    netapp_hostname: "17.101.30.185"
+    netapp_username: "admin"
+    vserver: ansibleSVM
+    address: 17.239.208.211
+    aggr: aggr1_ssd500_qts01_01
+    state: present
+  vars_prompt:
+  - name: "netapp_password"
+    prompt: "Password:"
+  tasks:
+  - name: Create SVM
+    na_ontap_svm:
+      state: "{{ state }}"
+      name: "{{ vserver }}"
+      root_volume: "{{ vserver}}_root"
+      root_volume_aggregate: "{{ aggr }}"
+      root_volume_security_style: unix
+      <<: *input
+  - name: Create interface
+    na_ontap_interface:
+      state: "{{ state }}"
+      interface_name: "{{ vserver }}_mgmt_data_1"
+      home_port: e0b
+      home_node: Q100BTCS001-01
+      role: data
+      protocols: nfs
+      admin_status: up
+      failover_policy: local-only
+      firewall_policy: mgmt
+      is_auto_revert: true
+      address: "{{ address }}"
+      netmask: 255.255.255.0
+      vserver: "{{ vserver }}"
+      <<: *input
+  - name: change nfs status
+    na_ontap_nfs:
+      state: "{{ state }}"
+      service_state: started
+      vserver: "{{ vserver }}"
+      nfsv3: enabled
+      nfsv4: enabled
+      nfsv41: disabled
+      tcp: enabled
+      udp: enabled
+      vstorage_state: disabled
+      <<: *input
+  - name: Setup default rules
+    na_ontap_export_policy_rule:
+      state: "{{ state }}"
+      policy_name: default
+      vserver: "{{ vserver }}"
+      client_match: 0.0.0.0/0
+      ro_rule: any
+      rw_rule: none
+      super_user_security: none
+      <<: *input

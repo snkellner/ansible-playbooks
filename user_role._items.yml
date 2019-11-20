@@ -1,0 +1,31 @@
+---
+- hosts: localhost
+  name: Setup user and roles
+  vars:
+    login: &login
+      hostname: "{{ netapp_hostname }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+  vars_files:
+    /root/ansible/var_global.yml    
+  tasks:
+  - name: Create User Role
+    na_ontap_user_role:
+      state: "{{ state }}"
+      name: "Netapp-Harvest-Role"
+      command_directory_name: "{{ item.directory }}"
+      access_level: "{{ item.access_level }}"
+      vserver: Q100BTCS001
+      <<: *login
+    with_items:
+      - { directory: DEFAULT, access_level: none}
+      - { directory: version, access_level: readonly}
+      - { directory: "cluster identity show", access_level: readonly}
+      - { directory: "cluster show", access_level: readonly}
+      - { directory: "system node show", access_level: readonly}
+      - { directory: "network interface show", access_level: readonly}
+      - { directory: "qos workload show", access_level: readonly}
+      - { directory: statistics, access_level: readonly}
+      - { directory: "lun show", access_level: readonly}

@@ -1,0 +1,52 @@
+---
+- hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Get aggregate info
+      na_ontap_gather_facts:
+        gather_subset: "aggregate_info"
+        https: true
+        validate_certs: false
+        hostname: "{{ inventory_hostname }}"
+        username: "{{ admin_username }}"
+        password: "{{ admin_password }}"
+      register: aggr_facts
+
+    - name: Set Fact to store less use aggregate name
+      set_fact:
+        my_aggr_usage: []
+
+    - name: Loop over aggregates - show data
+      debug:
+        msg: "{{ item.key }} is using {{ item.value.aggr_space_attributes.percent_used_capacity }} %"
+      loop_control:
+        label: "{{ item.key }}"
+      loop: "{{ aggr_facts.ansible_facts.ontap_facts.aggregate_info | dict2items }}"
+
+    - name: Loop over aggregates - save name and percent used
+      vars:
+        current_aggr: "{{ item.value.aggr_space_attributes.percent_used_capacity }} : {{ item.key }}"
+      set_fact:
+        my_aggr_usage: "{{ my_aggr_usage + [ current_aggr ] }}"
+      loop_control:
+        label: "{{ item.key }}"
+      loop: "{{ aggr_facts.ansible_facts.ontap_facts.aggregate_info | dict2items }}"
+
+    - name: Sort aggrs
+      set_fact: 
+        sorted_aggr: "{{ my_aggr_usage | sort() }}"
+        sorted_aggr_first: "{{ my_aggr_usage | sort() | first }}"
+        sorted_aggr_last: "{{ my_aggr_usage | sort() | last }}"
+    
+    - name: Display sorted aggrs
+      debug:
+        var: sorted_aggr
+  
+    - name: Display first aggr
+      debug:
+        var: sorted_aggr_first
+
+    - name: Display last aggr
+      debug:
+        var: sorted_aggr_last

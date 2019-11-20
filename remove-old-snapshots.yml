@@ -1,0 +1,34 @@
+---
+- hosts: localhost
+ vars:
+  date: “{{ timestamp.stdout }}”
+  date1: “{{ timestamp1.stdout }}”
+ tasks:
+ - name: Get Date
+   command: “date +%Y-%m-%d”
+   register: timestamp
+ - name: Get Date -1
+   command: “date +‘%Y-%m-%d’ -d ‘-1 days’”
+   register: timestamp1
+ - name: Snapshot volumes
+   na_ontap_cg_snapshot:
+     state: present
+     vserver: mgmt_svm
+     snapshot: “{{ date }}.refresh”
+     volumes: vol1
+     username: “{{ username }}”
+     password: “{{ password }}”
+     hostname:  “{{ hostname }}”
+     validate_certs: false
+     https: true
+ - name: Remove Snapshot volumes
+   na_ontap_snapshot:
+     state: absent
+     vserver: mgmt_svm
+     snapshot: “{{ date1 }}.refresh”
+     volume: vol1
+     username: “{{ username }}”
+     password: “{{ password }}”
+     hostname:  “{{ hostname }}”
+     validate_certs: false
+     https: true

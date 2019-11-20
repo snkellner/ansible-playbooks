@@ -1,0 +1,19 @@
+---
+- hosts: localhost
+  name: Setup user and roles
+  vars:
+    login: &login
+      hostname: "{{ netapp_hostname }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+  tasks:
+  - name: Create User Role
+    na_ontap_user_role:
+      state: present
+      name: "Netapp-Harvest-Role"
+      command_directory_name: version
+      access_level: readonly
+      vserver: Q100BTCS001
+      <<: *login

@@ -1,0 +1,11 @@
+hostname: 17.101.30.185
+username: admin
+volname: ansibleVolume
+vserver: ansibleSVM
+policy: ansiblePolicy
+address: 17.239.208.0/24
+aggr: aggr1_ssd500_qts01_01
+client: 0.0.0.0/0
+data_lif: 17.239.208.211
+state: present
+password: netapp01

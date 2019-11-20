@@ -1,0 +1,164 @@
+---
+- hosts: 127.0.0.1
+  gather_facts: false
+  connection: local
+
+  vars:
+    vcenter_hostname: 'cbc-vcenter01.muccbc.hq.netapp.com'
+    vcenter_datacenter: 'MUCCBC'
+    vcenter_cluster: 'CBC-Demo_UCS'
+    esxi_hosts: 
+      - 'cbc-esxi211.muccbc.hq.netapp.com'
+      - 'cbc-esxi212.muccbc.hq.netapp.com'
+      - 'cbc-esxi213.muccbc.hq.netapp.com'
+      - 'cbc-esxi214.muccbc.hq.netapp.com'
+    vm_note: 'Created by Ansible via Jenkins for'
+    vm_net1: 'v172_client'
+    eth0_netmask: '255.255.0.0'
+    eth0_gateway: '172.30.0.1'
+    vm_net2: 'v192_data'
+    eth1_netmask: '255.255.0.0'
+    vcenter_datastores: 
+      - 'cbc_esxi_demo_win_ds_01'
+      - 'cbc_esxi_demo_win_ds_02'
+      - 'cbc_esxi_demo_win_ds_03'
+    ansible_host_group: 'Windows_User_VMs'
+#    guest_id: 'windows9Server64Guest'
+    folder: '/vm/Users/'
+    memory_mb: '4096'
+    num_cpus: '1'
+    domain: 'muccbc.hq.netapp.com'
+    tz_code: 110    
+
+  tasks:
+  - name: Include from vault
+    include_vars:
+      file: ../accounts.yml
+
+# get date
+  - set_fact: creationdate="{{lookup('pipe','date "+%Y/%m/%d %H:%M"')}}"
+
+  - name: Set Facts - ESX Host
+    set_fact:
+      esxi_host: '{{ esxi_hosts|random }}'
+
+  - debug: var=esxi_host
+
+  - name: Set Facts - ESX Datastore
+    set_fact:
+      vcenter_datastore: '{{ vcenter_datastores|random }}'
+
+  - debug: var=vcenter_datastore
+
+  - name: Set Facts - Template Name
+    set_fact:
+      template_hostname: 'win_{{ OS_Version }}_t'
+
+  - name: Set VMWare Guest ID - 2016
+    set_fact:
+      guest_id: 'windows9Server64Guest'
+    when: OS_Version is search("2016")
+
+  - name: Set VMWare Guest ID - Windows 10
+    set_fact:
+      guest_id: 'windows9_64Guest'
+    when: OS_Version is search("10")
+
+# Change as soon as I can find the GuestID for 2019
+  - name: Set VMWare Guest ID  - 2019
+    set_fact:
+      guest_id: 'windows9Server64Guest'
+    when: OS_Version is search("2019")
+
+  - name: Create a folder for the user if not present 
+    vcenter_folder:
+      hostname: '{{ vcenter_hostname }}'
+      username: '{{ vsphere_user }}'
+      password: '{{ vsphere_password }}'
+      datacenter: '{{ vcenter_datacenter }}'
+      validate_certs: no
+      parent_folder: 'Users'
+      folder_name: '{{ vm_user }}'
+      state: present
+    register: sub_folder_creation_result
+    delegate_to: localhost
+    
+  - debug: var=sub_folder_creation_result
+
+# Create a VM from a template
+  - name: create the Windows VM
+    vmware_guest:
+      hostname: '{{ vcenter_hostname }}'
+      username: '{{ vsphere_user }}'
+      password: '{{ vsphere_password }}'
+      validate_certs: no
+      esxi_hostname: '{{ esxi_host }}'
+      datacenter: '{{ vcenter_datacenter }}'
+      folder: '{{ folder }}{{ vm_user }}'
+      name: '{{ vm_name }}'
+      state: poweredon
+      guest_id: '{{ guest_id }}'
+      annotation: "{{ vm_note }} - {{ creationdate }}"
+      networks:
+      - name: '{{ vm_net1 }}'
+        ip: '{{ eth0_ip }}'
+        netmask: '{{ eth0_netmask }}'
+        gateway: '{{ eth0_gateway }}'
+        dns_servers:
+        - 10.65.56.5
+        - 10.65.56.6
+      - name: '{{ vm_net2 }}'
+        ip: '{{ eth1_ip }}'
+        netmask: '{{ eth1_netmask }}'        
+      hardware:
+        memory_mb: '{{ memory_mb }}'
+        num_cpus: '{{ num_cpus }}'
+      customization:
+        timezone: '{{ tz_code }}'      
+        dns_servers:
+        - 10.65.56.5
+        - 10.65.56.6
+        joindomain: '{{ domain }}'
+        domainadmin:  '{{ vsphere_user }}'
+        domainadminpassword:  '{{ vsphere_password }}'
+        hostname: '{{ vm_name }}'
+        orgname: NetApp
+        runonce:
+        - powershell.exe -ExecutionPolicy Unrestricted -File C:\Windows\windows-login-scripts\git-pull.ps1
+        - powershell.exe -ExecutionPolicy Unrestricted -File C:\Windows\windows-login-scripts\ConfigureRemotingForAnsible.ps1 -ForceNewSSLCert -EnableCredSSP
+        - 'powershell.exe -ExecutionPolicy Unrestricted -File C:\Windows\windows-login-scripts\register.ps1 {{ vm_user }}'
+#        autologon: True    
+      template: '{{ template_hostname }}'
+      wait_for_ip_address: yes
+
+  - name: Add host to group
+    add_host:
+      name: '{{ eth0_ip }}'
+      groups: '{{ ansible_host_group }}'
+      eth0_ipv4address: '{{ eth0_ip }}'
+      cbc_server_type: "User VM"
+
+##################################
+# Post-Installation
+
+- name: Configure VM
+  hosts: Windows_Users
+  become: yes
+  become_method: sudo
+  gather_facts: false
+
+  tasks:
+  - name: "Wait for RDP"
+    local_action: wait_for port=3389 host="{{ inventory_hostname }}" delay=5
+    become: False
+
+#*******************END PLAY HERE**********************
+  - meta: end_play
+#*******************END PLAY HERE**********************
+
+  - name: add to ansible hosts file
+    lineinfile:
+      dest: /etc/ansible/hosts
+      insertafter: '^\[{{ ansible_host_group }}\]'
+      line: '{{ vm_name }}.{{ domain }}'
+    run_once: true

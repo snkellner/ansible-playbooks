@@ -1,0 +1,7 @@
+netapp_hostname: "17.101.30.185"
+netapp_username: "admin"
+netapp_password: "netapp01"
+vserver: ansibleSVM
+address: 17.239.208.211
+aggr: aggr1_ssd500_qts01_01
+state: absent
