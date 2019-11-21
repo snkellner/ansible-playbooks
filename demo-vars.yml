@@ -1,0 +1,29 @@
+---
+
+netapp_hostname: 192.168.0.110
+netapp_username: admin
+netapp_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          37316337316466626139376434663233306130323430663636626334616533663564326563646265
+          3635626136333833613364636232663733306333643438630a653065366563336335323133313036
+          34303636366164316339663563333636623963636663316364373137636661366663653462353465
+          3933636332666165370a626464346136386536356338343630313266386233643434353433623534
+          3931
+
+# Variables
+cluster: cluster1
+node01: cluster1-01
+data_node01: aggr1
+
+svms:
+  - { name: svm_datalake, aggr: "{{ data_node01 }}", rootname: "svm_datalake_root", security: unix, aggr_list: "{{ data_node01 }}" }
+
+interfaces:
+  - { name: "{{ svms.0.name }}-nfs01", svm: "{{ svms.0.name }}", node: "{{ node01 }}", port: e0a, ip: 192.168.0.150, mask: 255.255.255.0, protocol: nfs, role: data, status: up, fwpolicy: data }
+  - { name: "{{ svms.0.name }}-mgmt01", svm: "{{ svms.0.name }}", node: "{{ node01 }}", port: e0a, ip: 192.168.0.151, mask: 255.255.255.0, protocol: none, role: data, status: up, fwpolicy: mgmt }
+
+exportpolicy:
+  - { clientmatch: "0.0.0.0/0" }
+
+users:
+  - { name: kubeflow, password: Kubeflow1!, role: vsadmin-volume }

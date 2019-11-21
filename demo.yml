@@ -1,0 +1,69 @@
+---
+- name: Kubeflow demo SVM Setup in LoD
+  hosts: localhost
+  gather_facts: no
+  connection: local
+
+  vars_files:
+    - demo-vars.yml
+
+  vars:
+    login: &login
+      hostname: "{{ netapp_hostname }}"
+      username: "{{ netapp_username}}"
+      password: "{{ netapp_password }}"
+      https: true
+      validate_certs: false
+
+  tasks:
+
+    - name: Create SVM
+      na_ontap_svm:
+        state: present
+        name: "{{ item.name }}"
+        root_volume: "{{ item.rootname }}"
+        root_volume_aggregate: "{{ item.aggr }}"
+        root_volume_security_style: "{{ item.security }}"
+        aggr_list: "{{ item.aggr_list }}"
+        <<: *login
+      with_items: "{{ svms }}"
+  
+    - name: Create interfaces
+      na_ontap_interface:
+        state: present
+        interface_name: "{{ item.name }}"
+        home_node: "{{ item.node }}"
+        home_port: "{{ item.port }}"
+        role: "{{ item.role }}"
+        protocols: "{{ item.protocol }}"
+        admin_status: "{{ item.status }}"
+        firewall_policy: "{{ item.fwpolicy }}"
+        address: "{{ item.ip }}"
+        netmask: "{{ item.mask }}"
+        vserver: "{{ item.svm }}"
+        <<: *login
+      with_items: "{{ interfaces }}"
+
+    - name: Create nfs service
+      na_ontap_nfs:
+        state: present
+        service_state: started
+        vserver: "{{ svms.0.name }}"
+        nfsv3: enabled
+        nfsv4: disabled
+        nfsv41: disabled
+        <<: *login
+
+    - name: Create default export policy rule
+      na_ontap_export_policy_rule:
+        state: present
+        name: default
+        vserver: "{{ svms.0.name }}"
+        client_match: "{{ item.clientmatch }}"
+        ro_rule: sys
+        rw_rule: sys
+        protocol: nfs
+        super_user_security: sys
+        allow_suid: true
+        <<: *login
+      with_items: "{{ exportpolicy }}"
