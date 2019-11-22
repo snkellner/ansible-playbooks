@@ -1,0 +1,29 @@
+- name: Create UNIX group
+  na_ontap_unix_group:
+    state: present
+    name: SampleGroup
+    vserver: ansibleVServer
+    id: 2
+    users: user1,user2
+    hostname: "{{ netapp_hostname }}"
+    username: "{{ netapp_username }}"
+    password: "{{ netapp_password }}"
+
+- name: Delete all users in UNIX group
+  na_ontap_unix_group:
+    state: present
+    name: SampleGroup
+    vserver: ansibleVServer
+    users: ''
+    hostname: "{{ netapp_hostname }}"
+    username: "{{ netapp_username }}"
+    password: "{{ netapp_password }}"
+
+- name: Delete UNIX group
+  na_ontap_unix_group:
+    state: absent
+    name: SampleGroup
+    vserver: ansibleVServer
+    hostname: "{{ netapp_hostname }}"
+    username: "{{ netapp_username }}"
+    password: "{{ netapp_password }}"

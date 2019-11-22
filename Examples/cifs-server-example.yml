@@ -1,0 +1,11 @@
+{ netapp_username }}"
+    password: "{{ netapp_password }}"
+
+- name: Delete cifs_server
+  na_ontap_cifs_server:
+    state: absent
+    name: data2
+    vserver: svm1
+    hostname: "{{ netapp_hostname }}"
+    username: "{{ netapp_username }}"
+    password: "{{ netapp_password }}"

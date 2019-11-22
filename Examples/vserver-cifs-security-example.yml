@@ -1,0 +1,34 @@
+- name: modify cifs security
+  na_ontap_vserver_cifs_security:
+    vserver: ansible
+    hostname: "{{ hostname }}"
+    kerberos_clock_skew: 5
+    kerberos_ticket_age: 5
+    kerberos_renew_age: 10
+    kerberos_kdc_timeout: 5
+    is_signing_required: true
+    is_password_complexity_required: true
+    is_aes_encryption_enabled: true
+    is_smb_encryption_required: true
+    lm_compatibility_level: krb
+    smb1_enabled_for_dc_connections: true
+    smb2_enabled_for_dc_connections: true
+    use_start_tls_for_ad_ldap: true
+    username: username
+    password: password
+
+- name: modify cifs security
+  na_ontap_vserver_cifs_security:
+    vserver: ansible
+    hostname: "{{ hostname }}"
+    referral_enabled_for_ad_ldap: true
+    username: username
+    password: password
+
+- name: modify cifs security
+  na_ontap_vserver_cifs_security:
+    vserver: ansible
+    hostname: "{{ hostname }}"
+    session_security_for_ad_ldap: true
+    username: username
+    password: password

@@ -1,0 +1,15 @@
+- name: Enable Vscan
+  na_ontap_vscan:
+    enable: True
+    username: '{{ netapp_username }}'
+    password: '{{ netapp_password }}'
+    hostname: '{{ netapp_hostname }}'
+    vserver: trident_svm
+
+- name: Disable Vscan
+  na_ontap_vscan:
+    enable: False
+    username: '{{ netapp_username }}'
+    password: '{{ netapp_password }}'
+    hostname: '{{ netapp_hostname }}'
+    vserver: trident_svm

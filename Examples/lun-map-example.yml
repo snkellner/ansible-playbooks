@@ -1,0 +1,19 @@
+- name: Create LUN mapping
+  na_ontap_lun_map:
+    state: present
+    initiator_group_name: ansibleIgroup3234
+    path: /vol/iscsi_path/iscsi_lun
+    vserver: ci_dev
+    hostname: "{{ netapp_hostname }}"
+    username: "{{ netapp_username }}"
+    password: "{{ netapp_password }}"
+
+- name: Unmap LUN
+  na_ontap_lun_map:
+    state: absent
+    initiator_group_name: ansibleIgroup3234
+    path: /vol/iscsi_path/iscsi_lun
+    vserver: ci_dev
+    hostname: "{{ netapp_hostname }}"
+    username: "{{ netapp_username }}"
+    password: "{{ netapp_password }}"
