@@ -1,0 +1,25 @@
+# All import* statements are pre-processed at the time playbooks are parsed.
+# All include* statements are processed as they are encountered during the execution of the playbook.
+
+# Breaking tasks up into different files is an excellent way to organize complex sets of tasks or reuse them. A task file simply contains a flat list of tasks:
+# common_tasks.yml
+- name: placeholder foo
+  command: /bin/foo
+- name: placeholder bar
+  command: /bin/bar
+# You can then use import_tasks or include_tasks to execute the tasks in a file in the main task list:
+tasks:
+- import_tasks: common_tasks.yml
+# or
+- include_tasks: common_tasks.yml
+# You can also pass variables into imports and includes:
+tasks:
+- import_tasks: wordpress.yml
+  vars:
+    wp_user: timmy
+- import_tasks: wordpress.yml
+  vars:
+    wp_user: alice
+- import_tasks: wordpress.yml
+  vars:
+    wp_user: bob
